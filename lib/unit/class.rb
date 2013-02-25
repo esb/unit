@@ -175,6 +175,21 @@ class Unit < Numeric
     @value.to_f
   end
 
+  def value
+    if (Float === @value) && (Fixnum === Unit.fuzz) && (Unit.fuzz > 0)
+      @value.round(Unit.fuzz)
+    elsif (Rational === @value) && (@value.denominator == 1)
+      @value.numerator  
+    else
+      @value
+    end
+  end
+  
+  def to_number
+    v = value
+    (Rational === v) ? v.to_f : v
+  end
+
   def approx
     Unit.new(self.to_f, unit, system)
   end
@@ -282,6 +297,7 @@ class Unit < Numeric
 
   class << self
     attr_accessor :default_system
+    attr_accessor :fuzz
 
     def power_unit(unit, pow)
       unit.map {|factor, name, exp| [factor, name, exp * pow] }
