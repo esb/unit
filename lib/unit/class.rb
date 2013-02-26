@@ -57,9 +57,12 @@ class Unit < Numeric
   def /(other)
     if Numeric === other
       other = coerce_numeric(other)
-      Unit.new(Integer === value && Integer === other.value ?
-               Rational(value, other.value) : value / other.value,
-               unit + Unit.power_unit(other.unit, -1), system)
+      result = if Integer === value && Integer === other.value
+                 other.value == 1 ? value : Rational(value, other.value)
+               else
+                 value / other.value
+               end
+      Unit.new(result, unit + Unit.power_unit(other.unit, -1), system)
     else
       apply_through_coercion(other, __method__)
     end
@@ -194,8 +197,8 @@ class Unit < Numeric
     Unit.new(self.to_f, unit, system)
   end
 
-  def round
-    Unit.new(value.round, unit, system)
+  def round(precision = 0)
+    Unit.new(RUBY_VERSION > '1.9' ? value.round(precision) : ((value * 10**precision).round.to_f / 10**precision), unit, system)
   end
 
   def coerce(other)
@@ -250,16 +253,17 @@ class Unit < Numeric
     end
 
     # Reduce factors
-    @unit.each_with_index do |(factor1, unit1, exp1), k|
-      next if exp1 < 0
-      @unit.each_with_index do |(factor2, unit2, exp2), j|
-        if exp2 < 0 && exp2 == -exp1
-          q, r = @system.factor[factor1][:value].divmod @system.factor[factor2][:value]
-          if r == 0 && new_factor = @system.factor_value[q]
-            @unit[k] = @unit[k].dup
-            @unit[j] = @unit[j].dup
-            @unit[k][0] = new_factor
-            @unit[j][0] = :one
+    @unit.each_with_index do |(factor1, _, exp1), k|
+      if exp1 > 0
+        @unit.each_with_index do |(factor2, _, exp2), j|
+          if exp2 == -exp1
+            q, r = @system.factor[factor1][:value].divmod @system.factor[factor2][:value]
+            if r == 0 && new_factor = @system.factor_value[q]
+              @unit[k] = @unit[k].dup
+              @unit[j] = @unit[j].dup
+              @unit[k][0] = new_factor
+              @unit[j][0] = :one
+            end
           end
         end
       end

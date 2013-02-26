@@ -158,7 +158,7 @@ describe 'Unit' do
 
   it 'should reduce units' do
     Unit(1, "joule/kilogram").normalize.unit.should == [[:one, :meter, 2], [:one, :second, -2]].sort
-    Unit(1, "megaton/kilometer").unit.should == [[:kilo, :ton, 1], [:one, :meter, -1]].reverse
+    Unit(1, "megaton/kilometer").unit.should == [[:one, :meter, -1], [:kilo, :ton, 1]]
   end
 
   it 'should work with floating point values' do
@@ -213,12 +213,20 @@ describe 'Unit' do
     Unit(Rational(1,3), "m").approx.should == Unit(1.0/3.0, "m")
   end
 
-  it "should be able to round and return a unit" do
-    Unit(Rational(1,3), "m").round.should == Unit(0, "m")
-    Unit(Rational(2,3), "m").round.should == Unit(1, "m")
-    Unit(0.1, "m").round.should == Unit(0, "m")
-    Unit(0.5, "m").round.should == Unit(1, "m")
-    Unit(1, "m").round.should == Unit(1, "m")
+  describe "#round" do
+    it "should be able to round and return a unit" do
+      Unit(Rational(1,3), "m").round.should == Unit(0, "m")
+      Unit(Rational(2,3), "m").round.should == Unit(1, "m")
+      Unit(0.1, "m").round.should == Unit(0, "m")
+      Unit(0.5, "m").round.should == Unit(1, "m")
+      Unit(1, "m").round.should == Unit(1, "m")
+    end
+
+    it "should respect rounding precision" do
+      Unit(0.1234, "m").round(0).should == Unit(0, "m")
+      Unit(1.2345, "m").round(1).should == Unit(1.2, "m")
+      Unit(5.4321, "m").round(2).should == Unit(5.43, "m")
+    end
   end
 
 end
